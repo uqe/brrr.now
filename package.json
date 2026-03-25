@@ -1,12 +1,21 @@
 {
 	"name": "brrr.now",
 	"version": "0.1.0",
-	"description": "Next-generation UI components with developer experience in mind",
+	"description": "Tiny TypeScript client for sending push notifications with brrr.now webhooks",
 	"homepage": "https://github.com/uqe/brrr.now#readme",
 	"bugs": {
 		"url": "https://github.com/uqe/brrr.now/issues"
 	},
 	"license": "MIT",
+	"keywords": [
+		"brrr.now",
+		"brrr",
+		"notification",
+		"push-notification",
+		"push-notifications",
+		"webhook",
+		"typescript"
+	],
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/uqe/brrr.now.git"
@@ -14,6 +23,7 @@
 	"files": [
 		"dist"
 	],
+	"sideEffects": false,
 	"type": "module",
 	"module": "./dist/index.js",
 	"types": "./dist/index.d.ts",
