@@ -1,6 +1,6 @@
 {
 	"name": "brrr.now",
-	"version": "0.1.0",
+	"version": "1.0.0",
 	"description": "Tiny TypeScript client for sending push notifications with brrr.now webhooks",
 	"homepage": "https://github.com/uqe/brrr.now#readme",
 	"bugs": {
