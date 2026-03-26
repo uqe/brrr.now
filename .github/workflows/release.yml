@@ -6,7 +6,7 @@ on:
       - 'v*'
 
 permissions:
-  contents: write
+  contents: read
   id-token: write
 
 jobs:
@@ -54,5 +54,7 @@ jobs:
       - name: Update npm
         run: npm install -g npm@latest
 
-      - name: Publish packages to npm
-        run: bun pm pack && npm publish ./*.tgz --access public
+      - name: Publish package to npm
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ""
