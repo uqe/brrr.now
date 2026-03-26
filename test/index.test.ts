@@ -1,5 +1,5 @@
-import { afterEach, expect, test } from "bun:test";
 import { isBrrrNowError, sendNotification } from "../src";
+import { afterEach, expect, test } from "bun:test";
 
 const originalFetch = globalThis.fetch;
 
@@ -19,7 +19,13 @@ test("sends a JSON notification payload to the provided webhook URL", async () =
     requestInput = input;
     requestInit = init;
 
-    return new Response(null, { status: 202, statusText: "Accepted" });
+    return new Response(JSON.stringify({ success: true }), {
+      status: 200,
+      statusText: "OK",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
   });
 
   const response = await sendNotification({
@@ -35,7 +41,8 @@ test("sends a JSON notification payload to the provided webhook URL", async () =
     interruptionLevel: "time-sensitive",
   });
 
-  expect(response.status).toBe(202);
+  expect(response.status).toBe(200);
+  await expect(response.json()).resolves.toEqual({ success: true });
   expect(requestInput).toBe("https://api.brrr.now/v1/br_usr_test");
   expect(requestInit).toEqual({
     method: "POST",
@@ -62,7 +69,7 @@ test("builds a webhook URL when only the secret is provided", async () => {
   setFetch(async (input) => {
     requestInput = input;
 
-    return new Response(null, { status: 200 });
+    return new Response(JSON.stringify({ success: true }), { status: 200 });
   });
 
   await sendNotification({
@@ -79,7 +86,7 @@ test("trims whitespace around a webhook secret before building the URL", async (
   setFetch(async (input) => {
     requestInput = input;
 
-    return new Response(null, { status: 200 });
+    return new Response(JSON.stringify({ success: true }), { status: 200 });
   });
 
   await sendNotification({
@@ -96,7 +103,7 @@ test("passes string expirationDate through without modification", async () => {
   setFetch(async (_, init) => {
     requestInit = init;
 
-    return new Response(null, { status: 200 });
+    return new Response(JSON.stringify({ success: true }), { status: 200 });
   });
 
   await sendNotification({
@@ -119,7 +126,7 @@ test("throws when webhook is empty after trimming", async () => {
   setFetch(async () => {
     fetchCalled = true;
 
-    return new Response(null, { status: 200 });
+    return new Response(JSON.stringify({ success: true }), { status: 200 });
   });
 
   const result = sendNotification({
@@ -131,11 +138,11 @@ test("throws when webhook is empty after trimming", async () => {
   expect(fetchCalled).toBe(false);
 });
 
-test("throws a BrrrNowError for non-success responses", async () => {
+test("throws a BrrrNowError for non-success HTTP responses", async () => {
   setFetch(async () => {
-    return new Response("invalid request", {
-      status: 400,
-      statusText: "Bad Request",
+    return new Response(JSON.stringify({ success: false, error: "Not found" }), {
+      status: 404,
+      statusText: "Not Found",
     });
   });
 
@@ -151,9 +158,41 @@ test("throws a BrrrNowError for non-success responses", async () => {
     expect(isBrrrNowError(error)).toBe(true);
     expect(error).toMatchObject({
       name: "BrrrNowError",
-      status: 400,
-      statusText: "Bad Request",
-      body: "invalid request",
+      status: 404,
+      statusText: "Not Found",
+      body: JSON.stringify({ success: false, error: "Not found" }),
+      apiError: "Not found",
+    });
+  }
+});
+
+test("throws a BrrrNowError when the API responds with success false", async () => {
+  setFetch(async () => {
+    return new Response(JSON.stringify({ success: false, error: "Not found" }), {
+      status: 200,
+      statusText: "OK",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+  });
+
+  const result = sendNotification({
+    webhook: "br_usr_secret",
+    message: "Hello world!",
+  });
+
+  try {
+    await result;
+    throw new Error("Expected sendNotification to throw");
+  } catch (error) {
+    expect(isBrrrNowError(error)).toBe(true);
+    expect(error).toMatchObject({
+      name: "BrrrNowError",
+      status: 200,
+      statusText: "OK",
+      body: JSON.stringify({ success: false, error: "Not found" }),
+      apiError: "Not found",
     });
   }
 });
@@ -166,13 +205,11 @@ test("isBrrrNowError returns false for regular errors", () => {
       status: 400,
       statusText: "Bad Request",
       body: "invalid request",
-    }),
+    })
   ).toBe(false);
 });
 
-function setFetch(
-  fetchImplementation: (...args: Parameters<typeof fetch>) => ReturnType<typeof fetch>,
-): void {
+function setFetch(fetchImplementation: (...args: Parameters<typeof fetch>) => ReturnType<typeof fetch>): void {
   Object.defineProperty(globalThis, "fetch", {
     value: fetchImplementation as typeof fetch,
     writable: true,

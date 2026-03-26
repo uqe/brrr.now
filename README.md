@@ -17,13 +17,15 @@ npm install brrr.now
 ```typescript
 import { sendNotification } from "brrr.now";
 
-await sendNotification({
-	webhook: process.env.BRRR_WEBHOOK!,
-	title: "Coffee Machine Offline",
-	message: "The coffee machine is currently unreachable.",
-	sound: "upbeat_bells",
-	openUrl: "https://status.example.com/coffee-machine",
+const response = await sendNotification({
+  webhook: process.env.BRRR_WEBHOOK!,
+  title: "Coffee Machine Offline",
+  message: "The coffee machine is currently unreachable.",
+  sound: "upbeat_bells",
+  openUrl: "https://status.example.com/coffee-machine",
 });
+
+console.log(await response.json()); // { success: true }
 ```
 
 `webhook` can be either:
@@ -35,14 +37,15 @@ await sendNotification({
 
 ```typescript
 import type {
-	NotificationInterruptionLevel,
-	NotificationSound,
-	SendNotificationParams,
+  NotificationInterruptionLevel,
+  NotificationSound,
+  SendNotificationParams,
 } from "brrr.now";
 import { isBrrrNowError, sendNotification } from "brrr.now";
 ```
 
 `sendNotification(params)` sends a `POST` request with a JSON payload and returns the native `Response`.
+On success, the API body is `{"success":true}`.
 
 ### `SendNotificationParams`
 
@@ -58,12 +61,13 @@ import { isBrrrNowError, sendNotification } from "brrr.now";
 
 ### Error handling
 
-On non-`2xx` responses, `sendNotification` throws an `Error` object with extra fields:
+On non-`2xx` responses, or when the API returns `{"success":false,...}`, `sendNotification` throws an `Error` object with extra fields:
 
 - `name: "BrrrNowError"`
 - `status`
 - `statusText`
 - `body`
+- `apiError?`
 
 Use `isBrrrNowError` to narrow the error type:
 
@@ -71,14 +75,14 @@ Use `isBrrrNowError` to narrow the error type:
 import { isBrrrNowError, sendNotification } from "brrr.now";
 
 try {
-	await sendNotification({
-		webhook: process.env.BRRR_WEBHOOK!,
-		message: "Hello world!",
-	});
+  await sendNotification({
+    webhook: process.env.BRRR_WEBHOOK!,
+    message: "Hello world!",
+  });
 } catch (error) {
-	if (isBrrrNowError(error)) {
-		console.error(error.status, error.body);
-	}
+  if (isBrrrNowError(error)) {
+    console.error(error.status, error.apiError ?? error.body);
+  }
 }
 ```
 

@@ -38,6 +38,7 @@ export type BrrrNowError = Error & {
   status: number;
   statusText: string;
   body: string;
+  apiError?: string;
 };
 
 interface NotificationPayload {
@@ -52,6 +53,17 @@ interface NotificationPayload {
   "interruption-level"?: NotificationInterruptionLevel;
 }
 
+interface BrrrNowSuccessResponseBody {
+  success: true;
+}
+
+interface BrrrNowErrorResponseBody {
+  success: false;
+  error?: string;
+}
+
+type BrrrNowResponseBody = BrrrNowSuccessResponseBody | BrrrNowErrorResponseBody;
+
 export const sendNotification = async (params: SendNotificationParams): Promise<Response> => {
   const response = await fetch(resolveWebhookUrl(params.webhook), {
     method: "POST",
@@ -60,9 +72,15 @@ export const sendNotification = async (params: SendNotificationParams): Promise<
     },
     body: JSON.stringify(createPayload(params)),
   });
+  const body = await readResponseBody(response);
+  const responseBody = parseResponseBody(body);
 
   if (!response.ok) {
-    throw createBrrrNowError(response, await response.text());
+    throw createBrrrNowError(response, body, responseBody?.success === false ? responseBody.error : undefined);
+  }
+
+  if (responseBody?.success === false) {
+    throw createBrrrNowError(response, body, responseBody.error);
   }
 
   return response;
@@ -74,7 +92,9 @@ export const isBrrrNowError = (error: unknown): error is BrrrNowError => {
     error.name === "BrrrNowError" &&
     typeof (error as Partial<BrrrNowError>).status === "number" &&
     typeof (error as Partial<BrrrNowError>).statusText === "string" &&
-    typeof (error as Partial<BrrrNowError>).body === "string"
+    typeof (error as Partial<BrrrNowError>).body === "string" &&
+    (typeof (error as Partial<BrrrNowError>).apiError === "string" ||
+      typeof (error as Partial<BrrrNowError>).apiError === "undefined")
   );
 };
 
@@ -92,18 +112,20 @@ const createPayload = (params: SendNotificationParams): NotificationPayload => {
   };
 };
 
-const createBrrrNowError = (response: Response, body: string): BrrrNowError => {
-  const error = new Error(
-    `brrr.now request failed with ${response.status} ${response.statusText}${
-      body ? `: ${body}` : ""
-    }`,
-  );
+const createBrrrNowError = (response: Response, body: string, apiError?: string): BrrrNowError => {
+  const details = apiError ?? body;
+  const statusDetails = response.statusText ? ` ${response.statusText}` : "";
+  const message = response.ok
+    ? `brrr.now API reported failure${details ? `: ${details}` : ""}`
+    : `brrr.now request failed with ${response.status}${statusDetails}${details ? `: ${details}` : ""}`;
+  const error = new Error(message);
 
   return Object.assign(error, {
     name: "BrrrNowError" as const,
     status: response.status,
     statusText: response.statusText,
     body,
+    apiError,
   });
 };
 
@@ -121,12 +143,52 @@ const resolveWebhookUrl = (webhook: string): string => {
   return new URL(trimmedWebhook, API_BASE_URL).toString();
 };
 
-const serializeExpirationDate = (
-  expirationDate: SendNotificationParams["expirationDate"],
-): string | undefined => {
+const serializeExpirationDate = (expirationDate: SendNotificationParams["expirationDate"]): string | undefined => {
   if (expirationDate instanceof Date) {
     return expirationDate.toISOString();
   }
 
   return expirationDate;
+};
+
+const readResponseBody = async (response: Response): Promise<string> => {
+  return await response.clone().text();
+};
+
+const parseResponseBody = (body: string): BrrrNowResponseBody | undefined => {
+  if (!body) {
+    return undefined;
+  }
+
+  try {
+    const parsed = JSON.parse(body) as unknown;
+
+    if (isResponseBody(parsed)) {
+      return parsed;
+    }
+  } catch {
+    return undefined;
+  }
+
+  return undefined;
+};
+
+const isResponseBody = (value: unknown): value is BrrrNowResponseBody => {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const success = (value as Partial<BrrrNowResponseBody>).success;
+
+  if (success === true) {
+    return true;
+  }
+
+  if (success === false) {
+    const error = (value as Partial<BrrrNowErrorResponseBody>).error;
+
+    return typeof error === "string" || typeof error === "undefined";
+  }
+
+  return false;
 };
