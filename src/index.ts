@@ -25,6 +25,7 @@ export interface SendNotificationParams {
   title?: string;
   subtitle?: string;
   message?: string;
+  threadId?: string;
   sound?: NotificationSound;
   openUrl?: string;
   imageUrl?: string;
@@ -45,6 +46,7 @@ interface NotificationPayload {
   title?: string;
   subtitle?: string;
   message?: string;
+  thread_id?: string;
   sound?: NotificationSound;
   open_url?: string;
   image_url?: string;
@@ -103,6 +105,7 @@ const createPayload = (params: SendNotificationParams): NotificationPayload => {
     title: params.title,
     subtitle: params.subtitle,
     message: params.message,
+    thread_id: params.threadId,
     sound: params.sound,
     open_url: params.openUrl,
     image_url: params.imageUrl,

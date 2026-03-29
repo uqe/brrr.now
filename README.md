@@ -21,6 +21,7 @@ const response = await sendNotification({
   webhook: process.env.BRRR_WEBHOOK!,
   title: "Coffee Machine Offline",
   message: "The coffee machine is currently unreachable.",
+  threadId: "ops-coffee",
   sound: "upbeat_bells",
   openUrl: "https://status.example.com/coffee-machine",
 });
@@ -52,6 +53,7 @@ On success, the API body is `{"success":true}`.
 - `title`
 - `subtitle`
 - `message`
+- `threadId`
 - `sound`: `NotificationSound`
 - `openUrl`
 - `imageUrl`
