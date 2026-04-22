@@ -59,8 +59,46 @@ test("sends a JSON notification payload to the provided webhook URL", async () =
       open_url: "https://status.example.com/coffee-machine",
       image_url: "https://status.example.com/coffee-machine.png",
       expiration_date: "2026-04-23T09:00:00.000Z",
-      "filter-criteria": "ops",
-      "interruption-level": "time-sensitive",
+      filter_criteria: "ops",
+      interruption_level: "time-sensitive",
+    }),
+  });
+});
+
+test("sends critical alert fields using the documented payload names", async () => {
+  let requestInit: RequestInit | undefined;
+
+  setFetch(async (_, init) => {
+    requestInit = init;
+
+    return new Response(JSON.stringify({ success: true }), {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+  });
+
+  await sendNotification({
+    webhook: "br_usr_secret",
+    title: "Home Assistant",
+    message: "Water detected under the kitchen sink. Possible leak!",
+    interruptionLevel: "critical",
+    sound: "emergency",
+    volume: 0.8,
+  });
+
+  expect(requestInit).toEqual({
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      title: "Home Assistant",
+      message: "Water detected under the kitchen sink. Possible leak!",
+      sound: "emergency",
+      interruption_level: "critical",
+      volume: 0.8,
     }),
   });
 });

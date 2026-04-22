@@ -24,6 +24,7 @@ const response = await sendNotification({
   threadId: "ops-coffee",
   sound: "upbeat_bells",
   openUrl: "https://status.example.com/coffee-machine",
+  interruptionLevel: "time-sensitive",
 });
 
 console.log(await response.json()); // { success: true }
@@ -60,6 +61,7 @@ On success, the API body is `{"success":true}`.
 - `expirationDate`: `string | Date`
 - `filterCriteria`
 - `interruptionLevel`: `NotificationInterruptionLevel`
+- `volume`: `number`
 
 ### Error handling
 
@@ -88,7 +90,8 @@ try {
 }
 ```
 
-The supported sound values follow the official brrr.now documentation.
+`NotificationInterruptionLevel` supports `passive`, `active`, `time-sensitive`, and `critical`.
+The supported sound values follow the official brrr.now documentation, including `emergency` for critical alerts.
 
 ## Contributing
 

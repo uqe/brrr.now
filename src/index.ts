@@ -14,11 +14,12 @@ export type NotificationSound =
   | "dog_barking"
   | "door_bell"
   | "duck_quack"
+  | "emergency"
   | "short_triple_blink"
   | "upbeat_bells"
   | "warm_soft_error";
 
-export type NotificationInterruptionLevel = "passive" | "active" | "time-sensitive";
+export type NotificationInterruptionLevel = "passive" | "active" | "time-sensitive" | "critical";
 
 export interface SendNotificationParams {
   webhook: string;
@@ -32,6 +33,7 @@ export interface SendNotificationParams {
   expirationDate?: string | Date;
   filterCriteria?: string;
   interruptionLevel?: NotificationInterruptionLevel;
+  volume?: number;
 }
 
 export type BrrrNowError = Error & {
@@ -51,8 +53,9 @@ interface NotificationPayload {
   open_url?: string;
   image_url?: string;
   expiration_date?: string;
-  "filter-criteria"?: string;
-  "interruption-level"?: NotificationInterruptionLevel;
+  filter_criteria?: string;
+  interruption_level?: NotificationInterruptionLevel;
+  volume?: number;
 }
 
 interface BrrrNowSuccessResponseBody {
@@ -110,8 +113,9 @@ const createPayload = (params: SendNotificationParams): NotificationPayload => {
     open_url: params.openUrl,
     image_url: params.imageUrl,
     expiration_date: serializeExpirationDate(params.expirationDate),
-    "filter-criteria": params.filterCriteria,
-    "interruption-level": params.interruptionLevel,
+    filter_criteria: params.filterCriteria,
+    interruption_level: params.interruptionLevel,
+    volume: params.volume,
   };
 };
 
